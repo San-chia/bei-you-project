@@ -2052,7 +2052,8 @@ def register_data_callbacks(app):
         Output("modal-basic-indicator", "is_open"),
         [Input("btn-basic-indicator", "n_clicks"), 
          Input("close-basic-indicator", "n_clicks")],
-        [State("modal-basic-indicator", "is_open")]
+        [State("modal-basic-indicator", "is_open")],
+        prevent_initial_call=True  # 添加这行
     )
     def toggle_basic_indicator_modal(n1, n2, is_open):
         if n1 or n2 :
@@ -2064,7 +2065,8 @@ def register_data_callbacks(app):
         Output("modal-composite-indicator", "is_open"),
         [Input("btn-composite-indicator", "n_clicks"), 
         Input("close-composite-indicator", "n_clicks")],  # 移除了save-composite-indicator的监听
-        [State("modal-composite-indicator", "is_open")]
+        [State("modal-composite-indicator", "is_open")],
+        prevent_initial_call=True  # 添加这行
     )
     def toggle_composite_indicator_modal(n1, n2, is_open):
         """复合指标库模态窗口开关控制 - 修正版本，不会在保存时关闭"""
@@ -2077,7 +2079,8 @@ def register_data_callbacks(app):
         Output("modal-comprehensive-indicator", "is_open"),
         [Input("btn-comprehensive-indicator", "n_clicks"), 
         Input("close-comprehensive-indicator", "n_clicks")],  # 移除了save-comprehensive-indicator的监听
-        [State("modal-comprehensive-indicator", "is_open")]
+        [State("modal-comprehensive-indicator", "is_open")],
+        prevent_initial_call=True  # 添加这行
     )
     def toggle_comprehensive_indicator_modal(n1, n2, is_open):
         """综合指标库模态窗口开关控制 - 修正版本，不会在保存时关闭"""
@@ -2090,7 +2093,8 @@ def register_data_callbacks(app):
         Output("modal-algorithm-config", "is_open"),
         [Input("btn-algorithm-config", "n_clicks"), 
         Input("close-algorithm-config", "n_clicks")],  # 移除了save-algorithm-config的监听
-        [State("modal-algorithm-config", "is_open")]
+        [State("modal-algorithm-config", "is_open")],
+        prevent_initial_call=True  # 添加这行
     )
     def toggle_algorithm_config_modal(n1, n2, is_open):
         """算法配置模态窗口开关控制 - 修正版本，不会在保存时关闭"""
@@ -2102,13 +2106,17 @@ def register_data_callbacks(app):
     @app.callback(
         Output("modal-model-training", "is_open"),
         [Input("btn-model-training", "n_clicks"), 
-         Input("close-model-training", "n_clicks")],
-        [State("modal-model-training", "is_open")]
+        Input("close-model-training", "n_clicks")],
+        [State("modal-model-training", "is_open")],
+        prevent_initial_call=True  # 添加这行
     )
     def toggle_model_training_modal(n1, n2, is_open):
-        """模型参数管理模态窗口开关控制"""
         if n1 or n2:
-            return not is_open
+            new_state = not is_open
+            print(f"改变状态为: {new_state}")
+            return new_state
+        
+        print(f"保持当前状态: {is_open}")
         return is_open
 
     # 模拟训练进度回调
@@ -5523,7 +5531,8 @@ def register_data_callbacks(app):
         Output("modal-model-evaluation", "is_open"),
         [Input("btn-model-comparison", "n_clicks"), 
          Input("close-model-evaluation", "n_clicks")],
-        [State("modal-model-evaluation", "is_open")]
+        [State("modal-model-evaluation", "is_open")],
+        prevent_initial_call=True  # 添加这行
     )
     def toggle_model_evaluation_modal(n1, n2, is_open):
         """控制模型性能对比模态窗口的开关"""
