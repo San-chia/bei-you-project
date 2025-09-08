@@ -598,7 +598,7 @@ def create_basic_indicator_modal():
             dbc.Button("取消编辑", id="cancel-edit-indicator", color="warning", style={'marginRight': '10px', 'display': 'none'}),
             dbc.Button("保存指标", id="save-basic-indicator", color="primary")
         ])
-    ], id="modal-basic-indicator", size="xl", style={'maxWidth': '95%', 'width': '95%'})
+    ], id="modal-basic-indicator", is_open=False, size="xl", style={'maxWidth': '95%', 'width': '95%'})
 
 def import_choice_modal ():
     return dbc.Modal(
@@ -997,7 +997,7 @@ def create_composite_indicator_modal():
             dbc.Button("取消编辑", id="cancel-edit-composite", color="warning", style={'marginRight': '10px', 'display': 'none'}),
             dbc.Button("保存指标", id="save-composite-indicator", color="primary")
         ])
-    ], id="modal-composite-indicator", size="xl", style={'maxWidth': '95%', 'width': '95%'})
+    ], id="modal-composite-indicator", is_open=False, size="xl", style={'maxWidth': '95%', 'width': '95%'})
 
 def create_comprehensive_indicator_modal():
     """创建综合指标库模态窗口 - 完整修复版本"""
@@ -1366,7 +1366,7 @@ def create_comprehensive_indicator_modal():
             dbc.Button("取消编辑", id="cancel-edit-comprehensive", color="warning", style={'marginRight': '10px', 'display': 'none'}),
             dbc.Button("保存", id="save-comprehensive-indicator", color="primary")
         ])
-    ], id="modal-comprehensive-indicator", size="xl")
+    ], id="modal-comprehensive-indicator", is_open=False, size="xl")
 
 def create_algorithm_config_modal():
     """创建算法模型配置模态窗口 - 重新设计版本"""
@@ -1545,7 +1545,7 @@ def create_algorithm_config_modal():
         dbc.ModalFooter([
             dbc.Button("关闭", id="close-algorithm-config", color="secondary")
         ])
-    ],id="modal-algorithm-config", size="xl", centered=True,style={'maxWidth': '90%', 'width': '90%'})
+    ],id="modal-algorithm-config", is_open=False, size="xl", centered=True, style={'maxWidth': '90%', 'width': '90%'})
 
 def create_model_training_modal():
     """创建模型训练管理模态窗口 - 重新设计为算法参数管理"""
@@ -1633,7 +1633,7 @@ def create_model_training_modal():
             dbc.Button("取消编辑", id="cancel-parameter-edit", color="warning", style={'marginRight': '10px', 'display': 'none'}),
             dbc.Button("保存参数", id="save-parameters", color="primary", style={'display': 'none'})
         ])
-    ], id="modal-model-training", size="xl", style={'maxWidth': '90%', 'width': '90%'})
+    ], id="modal-model-training", size="xl", is_open=False, style={'maxWidth': '90%', 'width': '90%'})
 
 # 同时需要移除或重命名原有的预测精度评估模态窗口
 def create_model_evaluation_modal():
@@ -1744,7 +1744,7 @@ def create_model_comparison_modal():
                 "开始对比"
             ], id="start-evaluation", color="primary")
         ])
-    ], id="modal-model-evaluation", size="xl", centered=True, style={'maxWidth': '90%', 'width': '90%'})
+    ], id="modal-model-evaluation", size="xl",centered=True, style={'maxWidth': '90%', 'width': '90%'})
 
 
 def create_delete_confirmation_modal():

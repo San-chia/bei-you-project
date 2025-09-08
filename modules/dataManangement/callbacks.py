@@ -2,7 +2,7 @@
 import dash
 from dash import html
 from dash import Input, Output, State, callback_context, ALL, MATCH
-from dash import dcc, html, dash_table, callback
+from dash import dcc, html, dash_table, no_update
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 import pandas as pd
@@ -2047,77 +2047,222 @@ def get_algorithm_description(algorithm_name_en):
 def register_data_callbacks(app):
     """注册数据管理模块的回调函数"""
     
+    # 添加调试回调 - 监控所有模态窗口状态
+    @app.callback(
+        Output("debug-output", "children"),  # 需要在布局中添加一个隐藏的div
+        [Input("modal-basic-indicator", "is_open"),
+         Input("modal-composite-indicator", "is_open"),
+         Input("modal-comprehensive-indicator", "is_open"),
+         Input("modal-algorithm-config", "is_open"),
+         Input("modal-model-training", "is_open"),
+         Input("modal-model-evaluation", "is_open")]
+    )
+    def debug_modal_states(basic, composite, comprehensive, algo, training, eval):
+        print(f"""
+        ========== 模态窗口状态监控 ==========
+        基础指标: {basic}
+        复合指标: {composite}
+        综合指标: {comprehensive}
+        算法配置: {algo}
+        模型训练: {training}
+        预测精度: {eval}
+        =====================================
+        """)
+        return ""
+
     # 基础指标库模态窗口回调
     @app.callback(
         Output("modal-basic-indicator", "is_open"),
         [Input("btn-basic-indicator", "n_clicks"), 
-         Input("close-basic-indicator", "n_clicks")],
-        [State("modal-basic-indicator", "is_open")],
-        prevent_initial_call=True  # 添加这行
+        Input("close-basic-indicator", "n_clicks")],
+        [State("modal-basic-indicator", "is_open")]
     )
     def toggle_basic_indicator_modal(n1, n2, is_open):
-        if n1 or n2 :
-            return not is_open
-        return is_open
+        print(f"[基础指标] DEBUG: n1={n1}, n2={n2}, is_open={is_open}")
+        
+        # 如果两个按钮都没有被点击过，保持关闭状态
+        if n1 is None and n2 is None:
+            print("[基础指标] 两个按钮都未点击，返回 False")
+            return False
+        
+        ctx = callback_context
+        print(f"[基础指标] ctx.triggered: {ctx.triggered}")
+        
+        if not ctx.triggered:
+            print("[基础指标] 没有触发事件，返回 no_update")
+            return no_update
+        
+        # 获取触发的组件
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        trigger_value = ctx.triggered[0]["value"]
+        
+        print(f"[基础指标] 触发按钮: {button_id}, 触发值: {trigger_value}")
+        
+        # 确保触发值不是0或None
+        if trigger_value is None or trigger_value == 0:
+            print("[基础指标] 触发值无效，返回 no_update")
+            return no_update
+        
+        # 只在明确的按钮点击时切换
+        if button_id in ["btn-basic-indicator", "close-basic-indicator"]:
+            new_state = not is_open
+            print(f"[基础指标] 切换状态: {is_open} -> {new_state}")
+            return new_state
+        
+        print("[基础指标] 未知的触发源，返回 no_update")
+        return no_update
 
     # 复合指标库模态窗口回调
     @app.callback(
         Output("modal-composite-indicator", "is_open"),
         [Input("btn-composite-indicator", "n_clicks"), 
-        Input("close-composite-indicator", "n_clicks")],  # 移除了save-composite-indicator的监听
-        [State("modal-composite-indicator", "is_open")],
-        prevent_initial_call=True  # 添加这行
+        Input("close-composite-indicator", "n_clicks")],
+        [State("modal-composite-indicator", "is_open")]
     )
     def toggle_composite_indicator_modal(n1, n2, is_open):
-        """复合指标库模态窗口开关控制 - 修正版本，不会在保存时关闭"""
-        if n1 or n2:  # 只在点击打开或关闭按钮时切换状态
-            return not is_open
-        return is_open
-
+        print(f"[复合指标] DEBUG: n1={n1}, n2={n2}, is_open={is_open}")
+        
+        if n1 is None and n2 is None:
+            print("[复合指标] 两个按钮都未点击，返回 False")
+            return False
+        
+        ctx = callback_context
+        print(f"[复合指标] ctx.triggered: {ctx.triggered}")
+        
+        if not ctx.triggered:
+            print("[复合指标] 没有触发事件，返回 no_update")
+            return no_update
+        
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        trigger_value = ctx.triggered[0]["value"]
+        
+        print(f"[复合指标] 触发按钮: {button_id}, 触发值: {trigger_value}")
+        
+        if trigger_value is None or trigger_value == 0:
+            print("[复合指标] 触发值无效，返回 no_update")
+            return no_update
+        
+        if button_id in ["btn-composite-indicator", "close-composite-indicator"]:
+            new_state = not is_open
+            print(f"[复合指标] 切换状态: {is_open} -> {new_state}")
+            return new_state
+        
+        print("[复合指标] 未知的触发源，返回 no_update")
+        return no_update
     # 综合指标库模态窗口回调
     @app.callback(
         Output("modal-comprehensive-indicator", "is_open"),
         [Input("btn-comprehensive-indicator", "n_clicks"), 
-        Input("close-comprehensive-indicator", "n_clicks")],  # 移除了save-comprehensive-indicator的监听
-        [State("modal-comprehensive-indicator", "is_open")],
-        prevent_initial_call=True  # 添加这行
+        Input("close-comprehensive-indicator", "n_clicks")],
+        [State("modal-comprehensive-indicator", "is_open")]
     )
     def toggle_comprehensive_indicator_modal(n1, n2, is_open):
-        """综合指标库模态窗口开关控制 - 修正版本，不会在保存时关闭"""
-        if n1 or n2:  # 只在点击打开或关闭按钮时切换状态
-            return not is_open
-        return is_open
+        print(f"[综合指标] DEBUG: n1={n1}, n2={n2}, is_open={is_open}")
+        
+        if n1 is None and n2 is None:
+            print("[综合指标] 两个按钮都未点击，返回 False")
+            return False
+        
+        ctx = callback_context
+        print(f"[综合指标] ctx.triggered: {ctx.triggered}")
+        
+        if not ctx.triggered:
+            print("[综合指标] 没有触发事件，返回 no_update")
+            return no_update
+        
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        trigger_value = ctx.triggered[0]["value"]
+        
+        print(f"[综合指标] 触发按钮: {button_id}, 触发值: {trigger_value}")
+        
+        if trigger_value is None or trigger_value == 0:
+            print("[综合指标] 触发值无效，返回 no_update")
+            return no_update
+        
+        if button_id in ["btn-comprehensive-indicator", "close-comprehensive-indicator"]:
+            new_state = not is_open
+            print(f"[综合指标] 切换状态: {is_open} -> {new_state}")
+            return new_state
+        
+        print("[综合指标] 未知的触发源，返回 no_update")
+        return no_update
     
     # 算法配置模态窗口回调
     @app.callback(
         Output("modal-algorithm-config", "is_open"),
         [Input("btn-algorithm-config", "n_clicks"), 
-        Input("close-algorithm-config", "n_clicks")],  # 移除了save-algorithm-config的监听
-        [State("modal-algorithm-config", "is_open")],
-        prevent_initial_call=True  # 添加这行
+        Input("close-algorithm-config", "n_clicks")],
+        [State("modal-algorithm-config", "is_open")]
     )
     def toggle_algorithm_config_modal(n1, n2, is_open):
-        """算法配置模态窗口开关控制 - 修正版本，不会在保存时关闭"""
-        if n1 or n2:
-            return not is_open
-        return is_open
+        print(f"[算法配置] DEBUG: n1={n1}, n2={n2}, is_open={is_open}")
+        
+        if n1 is None and n2 is None:
+            print("[算法配置] 两个按钮都未点击，返回 False")
+            return False
+        
+        ctx = callback_context
+        print(f"[算法配置] ctx.triggered: {ctx.triggered}")
+        
+        if not ctx.triggered:
+            print("[算法配置] 没有触发事件，返回 no_update")
+            return no_update
+        
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        trigger_value = ctx.triggered[0]["value"]
+        
+        print(f"[算法配置] 触发按钮: {button_id}, 触发值: {trigger_value}")
+        
+        if trigger_value is None or trigger_value == 0:
+            print("[算法配置] 触发值无效，返回 no_update")
+            return no_update
+        
+        if button_id in ["btn-algorithm-config", "close-algorithm-config"]:
+            new_state = not is_open
+            print(f"[算法配置] 切换状态: {is_open} -> {new_state}")
+            return new_state
+        
+        print("[算法配置] 未知的触发源，返回 no_update")
+        return no_update
     
     # 保留原有的模型训练管理模态窗口回调（现在改为模型参数管理）
     @app.callback(
         Output("modal-model-training", "is_open"),
         [Input("btn-model-training", "n_clicks"), 
         Input("close-model-training", "n_clicks")],
-        [State("modal-model-training", "is_open")],
-        prevent_initial_call=True  # 添加这行
+        [State("modal-model-training", "is_open")]
     )
     def toggle_model_training_modal(n1, n2, is_open):
-        if n1 or n2:
+        print(f"[模型训练] DEBUG: n1={n1}, n2={n2}, is_open={is_open}")
+        
+        if n1 is None and n2 is None:
+            print("[模型训练] 两个按钮都未点击，返回 False")
+            return False
+        
+        ctx = callback_context
+        print(f"[模型训练] ctx.triggered: {ctx.triggered}")
+        
+        if not ctx.triggered:
+            print("[模型训练] 没有触发事件，返回 no_update")
+            return no_update
+        
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        trigger_value = ctx.triggered[0]["value"]
+        
+        print(f"[模型训练] 触发按钮: {button_id}, 触发值: {trigger_value}")
+        
+        if trigger_value is None or trigger_value == 0:
+            print("[模型训练] 触发值无效，返回 no_update")
+            return no_update
+        
+        if button_id in ["btn-model-training", "close-model-training"]:
             new_state = not is_open
-            print(f"改变状态为: {new_state}")
+            print(f"[模型训练] 切换状态: {is_open} -> {new_state}")
             return new_state
         
-        print(f"保持当前状态: {is_open}")
-        return is_open
+        print("[模型训练] 未知的触发源，返回 no_update")
+        return no_update
+
 
     # 模拟训练进度回调
     @app.callback(
@@ -2147,15 +2292,13 @@ def register_data_callbacks(app):
     # 模型性能对比模态窗口回调 - 替换原有的预测精度评估
     @app.callback(
         Output("modal-model-comparison", "is_open"),
-        [Input("btn-model-comparison", "n_clicks"), 
-         Input("close-model-comparison", "n_clicks")],
+        [Input("btn-model-comparison", "n_clicks"),
+        Input("close-model-comparison", "n_clicks")],
         [State("modal-model-comparison", "is_open")]
     )
     def toggle_model_comparison_modal(n1, n2, is_open):
         """模型性能对比模态窗口开关控制"""
-        if n1 or n2:
-            return not is_open
-        return is_open
+        print("[模型对比] 回调函数被调用了！")  # 最简单的调试
 
     # 施工模式切换时更新算法状态概览
     @app.callback(
@@ -5529,16 +5672,40 @@ def register_data_callbacks(app):
     # 添加模型性能对比模态窗口的开关回调
     @app.callback(
         Output("modal-model-evaluation", "is_open"),
-        [Input("btn-model-comparison", "n_clicks"), 
-         Input("close-model-evaluation", "n_clicks")],
-        [State("modal-model-evaluation", "is_open")],
-        prevent_initial_call=True  # 添加这行
+        [Input("btn-model-evaluation", "n_clicks"), 
+        Input("close-model-evaluation", "n_clicks")],
+        [State("modal-model-evaluation", "is_open")]
     )
     def toggle_model_evaluation_modal(n1, n2, is_open):
-        """控制模型性能对比模态窗口的开关"""
-        if n1 or n2:
-            return not is_open
-        return is_open
+        print(f"[预测精度] DEBUG: n1={n1}, n2={n2}, is_open={is_open}")
+        
+        if n1 is None and n2 is None:
+            print("[预测精度] 两个按钮都未点击，返回 False")
+            return False
+        
+        ctx = callback_context
+        print(f"[预测精度] ctx.triggered: {ctx.triggered}")
+        
+        if not ctx.triggered:
+            print("[预测精度] 没有触发事件，返回 no_update")
+            return no_update
+        
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        trigger_value = ctx.triggered[0]["value"]
+        
+        print(f"[预测精度] 触发按钮: {button_id}, 触发值: {trigger_value}")
+        
+        if trigger_value is None or trigger_value == 0:
+            print("[预测精度] 触发值无效，返回 no_update")
+            return no_update
+        
+        if button_id in ["btn-model-evaluation", "close-model-evaluation"]:
+            new_state = not is_open
+            print(f"[预测精度] 切换状态: {is_open} -> {new_state}")
+            return new_state
+        
+        print("[预测精度] 未知的触发源，返回 no_update")
+        return no_update
 
     @app.callback(
         [Output("comparison-summary-table", "data"),
