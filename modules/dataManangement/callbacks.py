@@ -2289,16 +2289,17 @@ def register_data_callbacks(app):
         
         return 40, "当前状态：训练中... (40% 完成，损失：0.035)"
 
-    # 模型性能对比模态窗口回调 - 替换原有的预测精度评估
+
+
     @app.callback(
-        Output("modal-model-comparison", "is_open"),
-        [Input("btn-model-comparison", "n_clicks"),
-        Input("close-model-comparison", "n_clicks")],
-        [State("modal-model-comparison", "is_open")]
+        Output("import-button", "n_clicks"),  # 借用一个已存在的组件
+        [Input("btn-model-comparison", "n_clicks")],
+        prevent_initial_call=True
     )
-    def toggle_model_comparison_modal(n1, n2, is_open):
-        """模型性能对比模态窗口开关控制"""
-        print("[模型对比] 回调函数被调用了！")  # 最简单的调试
+    def test_model_comparison_click(n_clicks):
+        print(f"\n=== 模型性能对比按钮被点击了！点击次数: {n_clicks} ===\n")
+        return 0  # 返回值不重要
+
 
     # 施工模式切换时更新算法状态概览
     @app.callback(
@@ -5672,39 +5673,39 @@ def register_data_callbacks(app):
     # 添加模型性能对比模态窗口的开关回调
     @app.callback(
         Output("modal-model-evaluation", "is_open"),
-        [Input("btn-model-evaluation", "n_clicks"), 
+        [Input("btn-model-comparison", "n_clicks"),  # ← 改成正确的按钮ID
         Input("close-model-evaluation", "n_clicks")],
         [State("modal-model-evaluation", "is_open")]
     )
     def toggle_model_evaluation_modal(n1, n2, is_open):
-        print(f"[预测精度] DEBUG: n1={n1}, n2={n2}, is_open={is_open}")
+        print(f"[模型性能对比] DEBUG: n1={n1}, n2={n2}, is_open={is_open}")
         
         if n1 is None and n2 is None:
-            print("[预测精度] 两个按钮都未点击，返回 False")
+            print("[模型性能对比] 两个按钮都未点击，返回 False")
             return False
         
         ctx = callback_context
-        print(f"[预测精度] ctx.triggered: {ctx.triggered}")
+        print(f"[模型性能对比] ctx.triggered: {ctx.triggered}")
         
         if not ctx.triggered:
-            print("[预测精度] 没有触发事件，返回 no_update")
+            print("[模型性能对比] 没有触发事件，返回 no_update")
             return no_update
         
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
         trigger_value = ctx.triggered[0]["value"]
         
-        print(f"[预测精度] 触发按钮: {button_id}, 触发值: {trigger_value}")
+        print(f"[模型性能对比] 触发按钮: {button_id}, 触发值: {trigger_value}")
         
         if trigger_value is None or trigger_value == 0:
-            print("[预测精度] 触发值无效，返回 no_update")
+            print("[模型性能对比] 触发值无效，返回 no_update")
             return no_update
         
-        if button_id in ["btn-model-evaluation", "close-model-evaluation"]:
+        if button_id in ["btn-model-comparison", "close-model-evaluation"]:  # ← 这里也要改
             new_state = not is_open
-            print(f"[预测精度] 切换状态: {is_open} -> {new_state}")
+            print(f"[模型性能对比] 切换状态: {is_open} -> {new_state}")
             return new_state
         
-        print("[预测精度] 未知的触发源，返回 no_update")
+        print("[模型性能对比] 未知的触发源，返回 no_update")
         return no_update
 
     @app.callback(

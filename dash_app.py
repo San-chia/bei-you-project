@@ -9,7 +9,7 @@ from flask_login import current_user
 
 # 导入配置
 from config import PRIMARY_COLOR, SECONDARY_COLOR, ACCENT_COLOR, BG_COLOR, CARD_BG, THEME, FONT_AWESOME_URL
-
+from modules.dataManangement import create_model_comparison_modal
 # 导入现有模块
 from modules.historyData import history_data_layout, register_history_data_callbacks
 from modules.pricePrediction import create_price_prediction_layout, create_steel_lining_parameter_modal, register_price_prediction_callbacks, create_steel_reinforcement_parameter_modal,create_custom_mode_parameter_modal,create_price_modification_modal
@@ -252,7 +252,7 @@ def create_dash_app(server):
         create_algorithm_config_modal(),
         create_model_training_modal(),
         create_model_evaluation_modal(),
-
+        create_model_comparison_modal(), 
         create_steel_cage_parameter_modal(),
         create_steel_cage_plus_modal(),
         create_modular_composite_plate_modal(),
