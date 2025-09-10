@@ -105,13 +105,21 @@ def register_report_management_callbacks(app):
         if not template:
             return no_update
         
-        # 构建配置参数
+        # 获取报表部分选择配置
         config_params = {}
-        for i, config_id in enumerate(config_ids):
-            if i < len(config_values):
-                section_idx = config_id["section"]
-                option_key = config_id["option"]
-                config_params[f"section_{section_idx}_{option_key}"] = config_values[i]
+        
+        # 获取主选项状态
+        main_sections = ctx.states.get({"type": "report-section", "section": ALL}, {})
+        for section_state in main_sections:
+            section_id = section_state['id']['section']
+            config_params[f"show_{section_id}"] = section_state['value']
+        
+        # 获取子选项状态
+        sub_sections = ctx.states.get({"type": "report-subsection", "section": ALL, "subsection": ALL}, {})
+        for sub_state in sub_sections:
+            section_id = sub_state['id']['section']
+            subsection_id = sub_state['id']['subsection']
+            config_params[f"show_{section_id}_{subsection_id}"] = sub_state['value']
         
         # 添加section启用状态
         for idx, enabled in enumerate(section_enables):
@@ -354,271 +362,258 @@ def register_report_management_callbacks(app):
             {"label": "示范工程C - 2024", "value": "P003"}
         ]
 
+    # 控制子项折叠
+    @app.callback(
+        [Output("overview-collapse", "is_open"),
+         Output("prediction-collapse", "is_open"),
+         Output("model-collapse", "is_open"),
+         Output("cost-collapse", "is_open")],
+        [Input({"type": "report-section", "section": "overview"}, "value"),
+         Input({"type": "report-section", "section": "prediction-analysis"}, "value"),
+         Input({"type": "report-section", "section": "best-model"}, "value"),
+         Input({"type": "report-section", "section": "cost-composition"}, "value")]
+    )
+    def toggle_subsection_collapse(overview, prediction, model, cost):
+        """根据主选项控制子选项的显示/隐藏"""
+        return overview, prediction, model, cost
+    
+    # 全选/取消全选功能
+    @app.callback(
+        [Output({"type": "report-section", "section": ALL}, "value"),
+         Output({"type": "report-subsection", "section": ALL, "subsection": ALL}, "value")],
+        [Input("select-all-sections", "n_clicks"),
+         Input("deselect-all-sections", "n_clicks")],
+        prevent_initial_call=True
+    )
+    def toggle_all_sections(select_clicks, deselect_clicks):
+        """全选或取消全选所有报表部分"""
+        ctx_id = ctx.triggered_id
+        
+        if ctx_id == "select-all-sections":
+            # 返回所有True
+            return [True] * 9, [True] * 10  # 9个主选项，10个子选项
+        elif ctx_id == "deselect-all-sections":
+            # 返回所有False
+            return [False] * 9, [False] * 10
+        
+        return no_update, no_update
+
+
 def create_advanced_config_form(template_id: str, template: dict) -> html.Div:
     """创建高级配置表单"""
     form_elements = []
     
-    # 1. 项目选择和数据源配置
+    # 添加说明文字
     form_elements.append(
         html.Div([
-            html.H5("1. 项目选择与数据源配置", className="mb-3"),
-            dbc.Row([
-                dbc.Col([
-                    dbc.Label("选择项目"),
-                    dcc.Dropdown(
-                        id="project-selector",
-                        options=[],  # 将通过回调动态加载
-                        placeholder="请选择项目",
-                        clearable=False
+            html.P("请选择要在报表中包含的内容部分：", className="text-muted mb-3")
+        ])
+    )
+    
+    # 报表内容选择
+    form_elements.append(
+        html.Div([
+            # 1. 报告概述
+            dbc.Card([
+                dbc.CardHeader([
+                    dbc.Checkbox(
+                        id={"type": "report-section", "section": "overview"},
+                        label="报告概述",
+                        value=True,
+                        className="fw-bold"
                     )
-                ], md=6),
-                dbc.Col([
-                    dbc.Label("施工模式"),
-                    dcc.Dropdown(
-                        id="construction-mode-selector",
-                        options=[
-                            {"label": "钢筋笼", "value": "steel_cage"},
-                            {"label": "钢衬里", "value": "steel_lining"}
-                        ],
-                        placeholder="选择施工模式"
-                    )
-                ], md=6)
+                ]),
+                dbc.Collapse([
+                    dbc.CardBody([
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "overview", "subsection": "mode"},
+                            label="施工模式信息",
+                            value=True,
+                            className="ms-4"
+                        ),
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "overview", "subsection": "time"},
+                            label="生成时间",
+                            value=True,
+                            className="ms-4"
+                        ),
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "overview", "subsection": "total"},
+                            label="预测总价",
+                            value=True,
+                            className="ms-4"
+                        )
+                    ])
+                ], id="overview-collapse", is_open=True)
             ], className="mb-3"),
             
-            # 数据源选择
-            html.Hr(),
-            html.H6("选择数据源", className="mb-3"),
-            dbc.Checklist(
-                id="data-source-checklist",
-                options=[
-                    {"label": "成本数据（calculation_results）", "value": "cost"},
-                    {"label": "预算数据（construction_parameter）", "value": "budget"},
-                    {"label": "项目基础数据（project_info）", "value": "project"},
-                    {"label": "施工参数数据（parameter_info）", "value": "parameter"},
-                    {"label": "历史对比数据", "value": "history"}
-                ],
-                value=["cost", "budget"],  # 默认选中
-                inline=False
-            ),
-        ])
-    )
-    
-    # 2. 筛选条件配置
-    form_elements.append(
-        html.Div([
-            html.Hr(className="my-4"),
-            html.H5("2. 筛选条件", className="mb-3"),
-            dbc.Row([
-                dbc.Col([
-                    dbc.Label("成本类型"),
-                    dcc.Dropdown(
-                        id="cost-type-filter",
-                        options=[
-                            {"label": "人工费", "value": "labor"},
-                            {"label": "材料费", "value": "material"},
-                            {"label": "机械费", "value": "machinery"},
-                            {"label": "间接费用", "value": "indirect"}
-                        ],
-                        multi=True,
-                        placeholder="选择成本类型（可多选）"
-                    )
-                ], md=6),
-                dbc.Col([
-                    dbc.Label("对比维度"),
-                    dcc.RadioItems(
-                        id="comparison-dimension",
-                        options=[
-                            {"label": "施工模式对比", "value": "mode"},
-                            {"label": "时间趋势对比", "value": "time"},
-                            {"label": "项目间对比", "value": "project"}
-                        ],
-                        value="mode",
-                        inline=True
-                    )
-                ], md=6)
-            ])
-        ])
-    )
-    
-    # 3. 报表内容配置（可视化模块选择）
-    form_elements.append(
-        html.Div([
-            html.Hr(className="my-4"),
-            html.H5("3. 报表内容配置", className="mb-3"),
-            html.P("选择要包含的内容模块并进行个性化配置", className="text-muted"),
-            
-            # 使用卡片形式展示可选模块
-            dbc.Row([
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            dbc.Checkbox(
-                                id={"type": "module-enable", "module": "overview"},
-                                label="成本概览卡片",
-                                value=True
-                            )
-                        ]),
-                        dbc.CardBody([
-                            html.P("显示总成本、预算金额、执行率、节约率等关键指标", 
-                                   className="small text-muted mb-2"),
-                            dcc.Dropdown(
-                                id="overview-metrics",
-                                options=[
-                                    {"label": "总成本", "value": "total_cost"},
-                                    {"label": "预算金额", "value": "budget"},
-                                    {"label": "执行率", "value": "execution_rate"},
-                                    {"label": "节约率", "value": "saving_rate"},
-                                    {"label": "成本差异", "value": "variance"}
-                                ],
-                                multi=True,
-                                value=["total_cost", "budget", "execution_rate", "saving_rate"],
-                                placeholder="选择显示指标"
-                            )
-                        ])
-                    ], className="mb-3")
-                ], md=6),
-                
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            dbc.Checkbox(
-                                id={"type": "module-enable", "module": "composition"},
-                                label="成本构成分析",
-                                value=True
-                            )
-                        ]),
-                        dbc.CardBody([
-                            html.P("展示各类成本的占比情况", 
-                                   className="small text-muted mb-2"),
-                            dcc.RadioItems(
-                                id="composition-chart-type",
-                                options=[
-                                    {"label": "饼图", "value": "pie"},
-                                    {"label": "柱状图", "value": "bar"},
-                                    {"label": "树形图", "value": "treemap"}
-                                ],
-                                value="pie",
-                                inline=True
-                            )
-                        ])
-                    ], className="mb-3")
-                ], md=6),
-                
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            dbc.Checkbox(
-                                id={"type": "module-enable", "module": "comparison"},
-                                label="施工模式对比",
-                                value=True
-                            )
-                        ]),
-                        dbc.CardBody([
-                            html.P("对比直接施工与模块化施工成本", 
-                                   className="small text-muted mb-2"),
-                            dbc.Checklist(
-                                id="comparison-items",
-                                options=[
-                                    {"label": "分项成本对比", "value": "detail"},
-                                    {"label": "总成本对比", "value": "total"},
-                                    {"label": "差异分析", "value": "variance"}
-                                ],
-                                value=["detail", "total"],
-                                inline=True
-                            )
-                        ])
-                    ], className="mb-3")
-                ], md=6),
-                
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            dbc.Checkbox(
-                                id={"type": "module-enable", "module": "detail"},
-                                label="成本明细表",
-                                value=True
-                            )
-                        ]),
-                        dbc.CardBody([
-                            html.P("详细的成本项目清单", 
-                                   className="small text-muted mb-2"),
-                            dcc.Dropdown(
-                                id="detail-group-by",
-                                options=[
-                                    {"label": "按类别分组", "value": "category"},
-                                    {"label": "按时间分组", "value": "time"},
-                                    {"label": "按项目分组", "value": "project"}
-                                ],
-                                value="category",
-                                clearable=False
-                            )
-                        ])
-                    ], className="mb-3")
-                ], md=6)
-            ])
-        ])
-    )
-    
-    # 4. 基本设置
-    form_elements.append(
-        html.Div([
-            html.Hr(className="my-4"),
-            html.H5("4. 基本设置", className="mb-3"),
-            dbc.Row([
-                dbc.Col([
-                    dbc.Label("报表名称"),
-                    dbc.Input(
-                        id="custom-report-name",
-                        placeholder=f"{template['name']} - {datetime.now().strftime('%Y-%m-%d')}",
-                        value=f"{template['name']} - {datetime.now().strftime('%Y-%m-%d')}"
-                    )
-                ], md=6),
-                dbc.Col([
-                    dbc.Label("统计周期"),
-                    dcc.DatePickerRange(
-                        id="report-date-range",
-                        start_date=datetime.now().replace(day=1).strftime("%Y-%m-%d"),
-                        end_date=datetime.now().strftime("%Y-%m-%d"),
-                        display_format="YYYY-MM-DD",
-                        style={"width": "100%"}
-                    )
-                ], md=6)
-            ])
-        ], className="mb-3")
-    )
-    
-    # 5. 导出设置
-    form_elements.append(
-        html.Div([
-            html.Hr(className="my-4"),
-            html.H5("5. 导出设置", className="mb-3"),
-            dbc.Row([
-                dbc.Col([
-                    dbc.Label("导出格式"),
-                    dbc.Checklist(
-                        id="export-formats",
-                        options=[
-                            {"label": "PDF", "value": "pdf"},
-                            {"label": "Excel", "value": "xlsx"},
-                            {"label": "Word", "value": "docx"}
-                        ],
-                        value=["pdf"],
-                        inline=True
-                    )
-                ], md=6),
-                dbc.Col([
+            # 2. 工程量数据详情
+            dbc.Card([
+                dbc.CardBody([
                     dbc.Checkbox(
-                        id="include-raw-data",
-                        label="包含原始数据",
-                        value=False,
-                        className="mt-4"
+                        id={"type": "report-section", "section": "engineering-data"},
+                        label="工程量数据详情",
+                        value=True,
+                        className="fw-bold mb-0"
                     )
-                ], md=6)
-            ])
+                ])
+            ], className="mb-3"),
+            
+            # 3. 预测结果分析
+            dbc.Card([
+                dbc.CardHeader([
+                    dbc.Checkbox(
+                        id={"type": "report-section", "section": "prediction-analysis"},
+                        label="预测结果分析",
+                        value=True,
+                        className="fw-bold"
+                    )
+                ]),
+                dbc.Collapse([
+                    dbc.CardBody([
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "prediction-analysis", "subsection": "ai"},
+                            label="AI预测结果",
+                            value=True,
+                            className="ms-4"
+                        ),
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "prediction-analysis", "subsection": "ratio"},
+                            label="比率法预测结果",
+                            value=True,
+                            className="ms-4"
+                        )
+                    ])
+                ], id="prediction-collapse", is_open=True)
+            ], className="mb-3"),
+            
+            # 4. 最佳模型分析
+            dbc.Card([
+                dbc.CardHeader([
+                    dbc.Checkbox(
+                        id={"type": "report-section", "section": "best-model"},
+                        label="最佳模型分析",
+                        value=True,
+                        className="fw-bold"
+                    )
+                ]),
+                dbc.Collapse([
+                    dbc.CardBody([
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "best-model", "subsection": "info"},
+                            label="模型信息",
+                            value=True,
+                            className="ms-4"
+                        ),
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "best-model", "subsection": "price"},
+                            label="预测价格与偏差",
+                            value=True,
+                            className="ms-4"
+                        ),
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "best-model", "subsection": "features"},
+                            label="模型特点",
+                            value=True,
+                            className="ms-4"
+                        )
+                    ])
+                ], id="model-collapse", is_open=True)
+            ], className="mb-3"),
+            
+            # 5. 算法执行状态分析
+            dbc.Card([
+                dbc.CardBody([
+                    dbc.Checkbox(
+                        id={"type": "report-section", "section": "algorithm-status"},
+                        label="算法执行状态分析",
+                        value=True,
+                        className="fw-bold mb-0"
+                    )
+                ])
+            ], className="mb-3"),
+            
+            # 6. 预测方法详细状态表
+            dbc.Card([
+                dbc.CardBody([
+                    dbc.Checkbox(
+                        id={"type": "report-section", "section": "method-details"},
+                        label="预测方法详细状态表",
+                        value=True,
+                        className="fw-bold mb-0"
+                    )
+                ])
+            ], className="mb-3"),
+            
+            # 7. 预测可信度评估
+            dbc.Card([
+                dbc.CardBody([
+                    dbc.Checkbox(
+                        id={"type": "report-section", "section": "confidence-assessment"},
+                        label="预测可信度评估",
+                        value=True,
+                        className="fw-bold mb-0"
+                    )
+                ])
+            ], className="mb-3"),
+            
+            # 8. 预测总价区间建议
+            dbc.Card([
+                dbc.CardBody([
+                    dbc.Checkbox(
+                        id={"type": "report-section", "section": "price-range"},
+                        label="预测总价区间建议",
+                        value=True,
+                        className="fw-bold mb-0"
+                    )
+                ])
+            ], className="mb-3"),
+            
+            # 9. 成本构成分析
+            dbc.Card([
+                dbc.CardHeader([
+                    dbc.Checkbox(
+                        id={"type": "report-section", "section": "cost-composition"},
+                        label="成本构成分析",
+                        value=True,
+                        className="fw-bold"
+                    )
+                ]),
+                dbc.Collapse([
+                    dbc.CardBody([
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "cost-composition", "subsection": "table"},
+                            label="成本数据表",
+                            value=True,
+                            className="ms-4"
+                        ),
+                        dbc.Checkbox(
+                            id={"type": "report-subsection", "section": "cost-composition", "subsection": "chart"},
+                            label="成本构成饼图",
+                            value=True,
+                            className="ms-4"
+                        )
+                    ])
+                ], id="cost-collapse", is_open=True)
+            ], className="mb-3")
+        ])
+    )
+    
+    # 添加全选/取消全选按钮
+    form_elements.append(
+        html.Div([
+            dbc.ButtonGroup([
+                dbc.Button("全选", id="select-all-sections", size="sm", outline=True),
+                dbc.Button("取消全选", id="deselect-all-sections", size="sm", outline=True)
+            ], className="mt-3")
         ])
     )
     
     return html.Div(form_elements, className="p-3")
+  
+    
+  
+   
 def generate_report_content(template: dict, processed_data: dict, config_params: dict) -> html.Div:
     """生成报表内容"""
     content_elements = []
