@@ -55,18 +55,14 @@ def create_report_management_layout():
                         dcc.Dropdown(
                             id="predefined-template-select",
                             options=[
-                                {"label": "项目成本分析报表", "value": "cost_analysis"},
-                                {"label": "施工效率对比报表", "value": "efficiency_comparison"},
-                                {"label": "资源利用率报表", "value": "resource_utilization"},                             
-                                {"label": "财务收益报表", "value": "financial_benefit"},
-                                {"label": "综合管理仪表板", "value": "management_dashboard"}
+                                {"label": "价格预测模块分析报表模版设置", "value": "cost_analysis"}
                             ],
                             placeholder="选择报表模板",
                             className="mb-3"
                         ),
                         html.Div(id="template-description", className="mb-3"),
                         dbc.Button(
-                            "生成报表",
+                            "开始报表配置",
                             id="generate-report-btn",
                             color="primary",
                             className="w-100",
@@ -455,7 +451,7 @@ def create_custom_report_designer_modal():
         ]),
         dbc.ModalFooter([
             dbc.Button("关闭", id="close-designer-modal", color="secondary", className="me-2"),
-            dbc.Button("生成报表", id="generate-custom-report-btn", color="primary")
+            dbc.Button("开始报表配置", id="generate-custom-report-btn", color="primary")
         ])
     ], id="custom-report-designer-modal", size="xl", fullscreen=True, is_open=False)
 

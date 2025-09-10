@@ -116,7 +116,7 @@ CHART_TYPE_CONFIG = {
 # 报表模板配置
 REPORT_TEMPLATES = {
     "cost_analysis": {
-        "name": "项目成本分析报表",
+        "name": "价格预测模块报表模版设置",
         "category": ReportCategory.TECH_ECON,
         "description": "深入分析项目成本构成、执行情况及趋势，对比直接施工与模块化施工成本差异",
         "icon": "chart-pie",
